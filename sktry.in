@@ -1,0 +1,9 @@
+# n. terms  (negative: use sncf.in as input)
+2
+# exponent, coeff. SM, coeff. NM
+1     -1099.3874999999998     -732.925
+1.1666666     1169.3125      779.5416666666666
+# nucleus (A, Z)
+48	20
+# other options (def. no spin orbit)
+no spin orbit
