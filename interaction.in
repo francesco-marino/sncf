@@ -1,5 +1,5 @@
 # n. terms  (negative: use sncf.in as input)
--3
+3
 # exponent, coeff. SM, coeff. NM  (div. by 3)
 2.	-144.822	-60.037			 
 5.	-172.553	-774.597
@@ -12,4 +12,4 @@
 # energy [MeV] of harmonic trap (0: no trap)
 0.
 # other options (def. no spin orbit)
-no spin orbit no coul
+no spin orbit

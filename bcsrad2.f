@@ -276,22 +276,6 @@ c       gradient terms
 c       nucleus (A, Z)
         read(1996,'(A)') dummy_string
         read(1996,*) aa, zz
-        if (command_argument_count().ge.2) then   ! read A and Z from command line
-          call get_command_argument(1, dummy_string)
-          read(dummy_string,*) aa    !convert ro real
-          call get_command_argument(2, dummy_string)
-          read(dummy_string,*) zz        
-
-          if (command_argument_count().ge.4) then
-             call get_command_argument(3, dummy_string)
-             read(dummy_string,*) c0deltarho
-             call get_command_argument(4, dummy_string)
-             read(dummy_string,*) c1deltarho        
-          end if
-        end if
-
-        print *, "C0 = ", c0deltarho
-        print *, "C1 = ", c1deltarho
 
 ccc     energy harmonic trap
         read(1996,'(A)') dummy_string
@@ -306,9 +290,9 @@ c       spin orbit (yes or no)
         read(1996,'(A)') dummy_string
         if (index(dummy_string,'no spin orbit').ne.0) then
            iso = 0
-           print *, "No spin orbit "
         else
            iso = 1
+           
         end if
 cc      Coulomb        
         if (index(dummy_string,'no coul').ne.0) then
@@ -328,6 +312,43 @@ cc      Coulomb
       end if 
 
 
+
+cc    read from command line
+      if (command_argument_count().ge.2) then   ! read A and Z from command line
+          call get_command_argument(1, dummy_string)
+          read(dummy_string,*) aa    !convert ro real
+          call get_command_argument(2, dummy_string)
+          read(dummy_string,*) zz        
+
+          if (command_argument_count().ge.4) then
+             call get_command_argument(3, dummy_string)
+             read(dummy_string,*) c0deltarho
+             call get_command_argument(4, dummy_string)
+             read(dummy_string,*) c1deltarho        
+          end if
+ccc       spin-orbit
+          if (command_argument_count().ge.5) then
+             call get_command_argument(5, dummy_string)
+             read(dummy_string,*) w0_0
+             w2p_0=w0_0        ! assuming the 2 spin strengths are equal
+             c0nablaj = -0.75d0 * w0_0
+             c1nablaj = -0.25d0 * w0_0
+             if (w0_0.ne.0) then   
+                iso= 1
+             end if
+          end if  
+
+        end if
+        
+        if (FRANCESCO) then
+          print *, "C0 = ", c0deltarho
+          print *, "C1 = ", c1deltarho
+        end if
+        if (iso.eq.1) then
+           print '(3(A8,F8.2))',"W",w0_0,"cj0",c0nablaj,"cj1",c1nablaj 
+        else         
+           print *, "No spin orbit "
+        end if
 
 
 CCC
@@ -1603,9 +1624,10 @@ cc    Defining the potential
       VPT3=VPT3*VNT                                                    
  8888 CONTINUE                                                         
       VNT3=-VNT3                                                       
-      VPT3=-VPT3                                                       
+      VPT3=-VPT3                          
+                             
       VN(J) = TXRO*DT(J) + TXDRO *DT1(J)/RM(J) + TXD2RO*DT2(J) +       
-     1TXTAU*TAUT(J)-W3*(DJT(J)/RM(J)+DJT1(J)/2.)                       
+     1 TXTAU*TAUT(J)-W3*(DJT(J)/RM(J)+DJT1(J)/2.)                       
 
       if(iter.eq.1.and.j.eq.1)then
         write(2,*)
@@ -1618,10 +1640,7 @@ cc    Defining the potential
       VN(J)=VN(J)-C13*(2.5*DT(J)*(DT2(J)+2.*DT1(J)/RM(J))              
      1+1.25*(DT1(J)**2)-2.*DT(J)*TAUT(J))       
      
-      VSON(J) = W0* DT1(J)/(2.* RM(J)) 
-     1-2.d0*float(isj)*.125*(T1*X1 + T2*X2)*DJT(J)/RM(J)      
-     1+2.d0*float(itens)*5.d0*(stc_t+stc_u)/24.d0*DJT(J)/RM(J)  
-       
+      
       if(iter.eq.1)then
         write(96,*) float(j)*h,W0* DT1(J)/(2.* RM(J)), 
      1  -.125*(T1*X1 + T2*X2)*DJT(J)/RM(J),
@@ -1650,6 +1669,11 @@ cc    Defining the potential
       end if
 
 
+cc     common block of the s.o. potential (total densities)
+       VSON(J) = W0* DT1(J)/(2.* RM(J)) 
+     1-2.d0*float(isj)*.125*(T1*X1 + T2*X2)*DJT(J)/RM(J)      
+     1+2.d0*float(itens)*5.d0*(stc_t+stc_u)/24.d0*DJT(J)/RM(J)  
+    
 
 ccc   In input there is f lag to turn SO on/off
       VSOP(J) = VSON(J) + W0P*DP1(J)/(2.*RM(J))
@@ -1663,9 +1687,11 @@ ccc   Change here PROTONS
           VP(J) = mean_field(DT(J),BETA(J),tauz)
      1  + 2.d0*c0deltarho*(dt2(j)  +2.d0*dt1(j)/rm(j))
      1  + 2.d0*c1deltarho*(d_iv2(j)+2.d0*d_iv1(j)/rm(j))*tauz
-ccc       Spin-orbit 
-          VSON(J) = W0* DT1(J)/(2.* RM(J))
-          VSOP(J) = VSON(J) + W0P*DP1(J)/(2.*RM(J))
+ccc       Spin-orbit (nabla j + nabla j_p)
+     1  - w0_0/2.* (  (djt1(j) + 2.d0/rm(j)*djt(j)) + 
+     1    (djp1(j) +2.d0/rm(j)*djp(j))  ) 
+c          VSON(J) = W0* DT1(J)/(2.* RM(J))
+c          VSOP(J) = VSON(J) + W0P*DP1(J)/(2.*RM(J))
       end if 
       
 
@@ -1689,26 +1715,29 @@ ccc   Update average potential PROTONS
 
 ccc   NEUTRONS      
       VN(J) = VN(J) + TXROQ*DN(J) + TXDROQ*DN1(J)/RM(J) + TXD2RQ* DN2(J
-     1) + TXTAUQ * TAUN(J) -W3P*( DJN(J)/RM(J) + .5*DJN1(J)) -.25*T3   
-     2*4.*VNT3
+     1 ) + TXTAUQ * TAUN(J) -W3P*( DJN(J)/RM(J) + .5*DJN1(J)) -.25*T3   
+     2 *4.*VNT3
 
       VN(J)=VN(J)-C13*(-2.5*DN(J)*(DN2(J)+2.*DN1(J)/RM(J))-1.25*(DN1(J)
-     1**2)+2.*DN(J)*TAUN(J)-0.25*(DJN(J)**2)-0.50*(DJP(J)**2))      
+     1 **2)+2.*DN(J)*TAUN(J)-0.25*(DJN(J)**2)-0.50*(DJP(J)**2))      
  
       VSON(J) = VSON(J) + W0P*DN1(J)/(2.*RM(J))
-     1+2.d0*float(isj)*.125*(T1-T2)*DJN(J)/RM(J)
-     1+2.d0*float(itens)*5.d0*(stc_u-stc_t)/24.d0* DJN(J)/RM(J)
+     1 +2.d0*float(isj)*.125*(T1-T2)*DJN(J)/RM(J)
+     1 +2.d0*float(itens)*5.d0*(stc_u-stc_t)/24.d0* DJN(J)/RM(J)
      
 
       if (FRANCESCO) then
 ccc   Define VN(J) here     (att: in VN +1-beta;  in VP, -1-beta)
         tauz=+1.d0
         VN(J) = mean_field(DT(J),BETA(J),tauz)
+cc    Gradients
      1  + 2.d0*c0deltarho*(dt2(j)  +2.d0*dt1(j)/rm(j))
      1  + 2.d0*c1deltarho*(d_iv2(j)+2.d0*d_iv1(j)/rm(j))*tauz
-cc    Spin-orbit neutrons
-        VSON(J) = W0* DT1(J)/(2.* RM(J))
-        VSON(J) = VSON(J) + W0P*DN1(J)/(2.*RM(J))
+ccc   Spin-orbit (nabla j + nabla j_n)
+     1  - w0_0/2.d0 * (  (djt1(j) + 2.d0/rm(j)*djt(j)) +
+     1    (djn1(j) +2.d0/rm(j)*djn(j))  )
+cc        VSON(J) = W0* DT1(J)/(2.* RM(J))
+cc        VSON(J) = VSON(J) + W0P*DN1(J)/(2.*RM(J))
       end if 
 
 
@@ -1736,12 +1765,12 @@ cc    Update average potential NEUTRON
       do i=1,nos
        if(iter.eq.1)go to 1505
        diff=dabs(ehf(i)-ehf_old(i))
-       if(diff.gt.diffmax)diffmax=diff
+       if(diff.gt.diffmax) diffmax=diff
  1505  ehf_old(i)=ehf(i)
       end do
 
 c     Convergence    
-      if(iter.gt.1.and.diffmax.lt.8e-3)go to 116  ! def. value: 1e-5
+      if(iter.gt.1.and.diffmax.lt.1e-3)go to 116  ! def. value: 1e-5
       IF(iter. GE.ITMAX)go to 1506
       GO TO 104     
 
@@ -2093,8 +2122,8 @@ c     Writing occupation factors
 ccc   spin-orbit energy
       do j=1,nnn
         espo = espo + w2 *dt(j)*(2.d0*rm(j)*djt(j)+rm2(j)*djt1(j)) 
-     1              + w2p*dp(j)*(2.d0*rm(j)*djp(j)+rm2(j)*djp1(j)) 
-     1              + w2p*dn(j)*(2.d0*rm(j)*djn(j)+rm2(j)*djn1(j) )
+     2              + w2p*dp(j)*(2.d0*rm(j)*djp(j)+rm2(j)*djp1(j)) 
+     2              + w2p*dn(j)*(2.d0*rm(j)*djn(j)+rm2(j)*djn1(j) )
 ccc     spin-orbit  density
         so_dens(j) = 
      1  (  w2*dt(j)*( 2.d0*djt(j)/rm(j) + djt1(j) ) 
@@ -2172,7 +2201,6 @@ ccc   Initialize several quantities to zero
 c      e_di_so=0.d0
 c     Custom potential
       e_bulk = 0.d0
-      e_surf = 0.d0
       e_ext = 0.d0
 C_GL_19_04
       e_d_coul=0.d0
@@ -2212,21 +2240,19 @@ cc    tensor, J2
 
 ccc   Energy density
 cc    R, energy density, kin., pot., central, so, coul_d, coul_e
-cc      write(1998,'(4(A,X))'), 'r',achar(9), 'en', achar(9),
-cc     1 'kin', achar(9),'pot',achar(9),
-cc     1 'cent',achar(9),'so',achar(9),'coul_d',achar(9),'coul_e'
-ccc   Terms: kin, pot, spin-orbit, Coul (d/e), ext       
+cc    Terms: kin, pot, spin-orbit, Coul (d/e), ext       
       bulk_arr = 0.d0
       surf_dens=0.d0
       do j = 1,nnn
         kin_dens(j) = taut(j)*hb
-        bulk_arr(j) = 
-     1  float(icoul_d)*d_coul_dens(j) + float(icoul_e)*e_coul_dens(j) +
-     1  so_dens(j)*float(iso) + 
-     1  i_ext *harmonic_potential(rm(J),omega) *dt(j)
+!        bulk_arr(j) = 
+!     1  float(icoul_d)*d_coul_dens(j) + float(icoul_e)*e_coul_dens(j) 
+        surf_dens(j) = 
+     3  so_dens(j)*float(iso) + 
+     3  i_ext *harmonic_potential(rm(J),omega) *dt(j)
         if (FRANCESCO) then
           bulk_arr(j) = bulk_arr(j) + pot_density(dt(j),beta(j))
-          surf_dens(j) =
+          surf_dens(j) = surf_dens(j)
      2    - c0deltarho* dt1(j)**2 - c1deltarho* d_iv1(j)**2
 c     2    c0deltarho*dt(j)*   (dt2(j)+dt1(j)/rm(j)) +
 c     2    c1deltarho*d_iv(j)* (d_iv2(j)+d_iv1(j)/rm(j))
@@ -2245,37 +2271,23 @@ cc      H(fin)    finite range (gradient, t1-t2) contribution
      2  ( dp1(j)**2+dn1(j)**2 )
           bulk_arr(j) = bulk_arr(j) + cen_dens(j)
         end if
-        en_dens(j) = kin_dens(j) + bulk_arr(j)
+        en_dens(j) = kin_dens(j) + bulk_arr(j) + surf_dens(j)
+cc      todo qua è pieno di cose da sistemare
 cc      R, energy density, kin. density, pot. d
-        write(1997,*), rm(j), en_dens(j), kin_dens(j), bulk_arr(j)
+        write(1997,'(8F10.4)'),rm(j),en_dens(j),kin_dens(j),bulk_arr(j)
 cc      R, energy density, kin., pot., central, so, coul_d, coul_e
-        write(1998,*), rm(j), en_dens(j), kin_dens(j), bulk_arr(j),
-     3  cen_dens(j), so_dens(j),
+        write(1998,'(8F10.4)'), rm(j), en_dens(j), kin_dens(j),
+     3   bulk_arr(j), cen_dens(j), so_dens(j),
      3  float(icoul_d)*d_coul_dens(j), float(icoul_e)*e_coul_dens(j)
 
       end do
 
-      if (FRANCESCO) then
-        e_c1 = 0.d0
-        do j=1,nnn
-        e_c1=e_c1+c1deltarho*d_iv(j)*   
-     1  (d_iv2(j)+2.d0*d_iv1(j)/rm(j))*rm2(j)
-        end do
-        e_c1=e_c1*qp*h
-        print *, "E(delta 1) = ", e_c1
-      end if
-
 cc    ectot    bare kinetic energy
-cc      espo_test = 0.d0
       ectot=0.                                                         
       do J=1,NNN                                                  
         ectot=ectot + taut(J)*rm2(J)   
-cc        espo_test = espo_test + so_dens(j)*rm2(j)
       end do                                            
       ectot=ectot*qp*h*hb          
-cc      espo_test = espo_test*qp*h
-cc      print *, "Espo test = ", espo_test
-
 
 
 c     Iterating over positions   -> computing integral
@@ -2284,10 +2296,11 @@ c     Iterating over positions   -> computing integral
 c     Integrale potenziale "personalizzato" (in simm. sferica -> somma r^2 * integrando)
       if (FRANCESCO) then
         e_bulk = e_bulk + rm2(J) * pot_density(DT(J),BETA(J)) 
-        e_surf = e_surf + rm2(j) * surf_dens(j)   
+cc        e_surf = e_surf + rm2(j) * surf_dens(j)   
       end if
 
 
+cc    c13 is usually 0
       ERE=-0.5*C13*1.25*(DP(J)*(DP1(J)**2)                             
      1+DN(J)*(DN1(J)**2)-DT(J)*(DT1(J)**2))                            
       ERE=ERE-0.5*C13*(TAUN(J)*(DP(J)**2)+TAUP(J)*(DN(J)**2)+2.*DT(J)  
@@ -2298,7 +2311,6 @@ c     Integrale potenziale "personalizzato" (in simm. sferica -> somma r^2 * int
 
 
       if (FRANCESCO) then
-ccc     need to adjust the rearrangement energy
         erea=erea+rm2(J)*rearrangement_density(DT(J),BETA(J))   
       else
         erea = erea-RM2(J)*ERE                                       
@@ -2352,6 +2364,18 @@ cc    Displacement Coulomb energy
 
 cc    Doba energies
       if (debug) then
+
+ccc       rho *lapl(rho) = - (grad rho)^2 = - (drho/dr)^2
+          e_deltarho0 = e_deltarho0 - c0deltarho * DT1(J)**2 *rm2(J)
+          e_deltarho1 = e_deltarho1 - c1deltarho *D_IV1(J)**2 *rm2(J)
+
+ccc       rho * div(J)
+          div = rm2(J)*DJT1(J)   + 2.*rm(J)*DJT(J)         ! div(J) * r^2
+          e_nablaj0 =  e_nablaj0 + c0nablaj*DT(J)* div
+          div = rm2(J)*DJ_IV1(J) + 2.*rm(J)*DJ_IV(J)
+          e_nablaj1 =  e_nablaj1 + c1nablaj*D_IV(J)* div
+
+
         if (FRANCESCO.eqv..false.) then
 
 ccc       rho^2 
@@ -2360,26 +2384,21 @@ ccc       rho^2
           e_rho0 = e_rho0 + cc0 * DT(J)**2   * rm2(J)
           e_rho1 = e_rho1 + cc1 * D_IV(J)**2 * rm2(J)
 
-ccc       rho *lapl(rho) = - (grad rho)^2 = - (drho/dr)^2
-          e_deltarho0 = e_deltarho0 - c0deltarho * DT1(J)**2 *rm2(J)
-          e_deltarho1 = e_deltarho1 - c1deltarho *D_IV1(J)**2 *rm2(J)
-
 ccc       rho*tau
           e_tau0 = e_tau0 + c0tau*DT(J)*TAUT(J)* rm2(J)
           e_tau1 = e_tau1 + c1tau*D_IV(J)*TAU_IV(J)* rm2(J)
 
-ccc       rho * div(J)
-          div = rm2(J)*DJT1(J)   + 2.*rm(J)*DJT(J)         ! div(J) * r^2
-          e_nablaj0 =  e_nablaj0 + c0nablaj*DT(J)* div
-          div = rm2(J)*DJ_IV1(J) + 2.*rm(J)*DJ_IV(J)
-          e_nablaj1 =  e_nablaj1 + c1nablaj*D_IV(J)* div
 
 ccc       J*J  tensor
           e_t0 = e_t0 + c0t*DJT(J)*  DJT(J)   * rm2(J)
           e_t1 = e_t1 + c1t*DJ_IV(J)*DJ_IV(J) * rm2(J)
          
+         end if
+
+
         end if
-      end if
+
+
 
       end do
 ccc   Finished with the integral loop
@@ -2417,24 +2436,22 @@ cc      print *, "E(Delta 1) = ", e_deltarho1
       e_t0 = e_t0*h*qp
       e_t1 = e_t1*h*qp
       e_t  = e_t0+e_t1
+        
+      e_ext = e_ext *h*qp
 
       if (FRANCESCO) then
         e_bulk = e_bulk  * h * qp
-        e_surf = e_surf  * h * qp
-        e_ext = e_ext *h*qp
+!        e_surf = e_surf  * h * qp
       else
         e_bulk0=e_rho0+e_tau0
         e_bulk1=e_rho1+e_tau1
         e_bulk =e_rho +e_tau
-
-        e_surf0=e_nablaj0*float(iso)+e_deltarho0+float(isj)*e_t0
-        e_surf1=e_nablaj1*float(iso)+e_deltarho1+float(isj)*e_t1
-        e_surf =e_surf0+e_surf1
-     
-        e_bulk = e_rho + e_tau 
-!        print *, "Tensor?   ", isj
-        e_surf = e_nablaj*float(iso)  + e_deltarho + float(isj)* e_t
       endif
+
+      e_surf0=e_nablaj0*float(iso)+e_deltarho0+float(isj)*e_t0
+      e_surf1=e_nablaj1*float(iso)+e_deltarho1+float(isj)*e_t1
+!      e_surf =e_surf0+e_surf1
+      e_surf = e_nablaj*float(iso)  + e_deltarho + float(isj)* e_t
   
 
 
@@ -2461,9 +2478,9 @@ cc    H0 = 1/2 [ E(kin)+ sum(eneergy eignevalues) + ext. pot. ] / A
 
 
 ccc   total energy/A
-ccc   H0:  sum of eigenvalues and potential; EREA: rearrangement energy      
+ccc   H0:  sum of eigenvalues and kinetic energy; EREA: rearrangement energy      
       etot = h0 + erea                                                  
-      write(2,*) 'h0,etot,erea=',h0,etot,erea
+      write(2,*) 'h0,erea,etot=',h0,erea,etot
 
 
 cc    pairing
@@ -2525,16 +2542,18 @@ ccc   Total energy computed as an integral   (work HERE)
      1 i_ext*e_ext                 ! external
 
 cc    e_bulk: contribution of (custom) nuclear potential; ectot*ma: kin. en;
-cc    espo: spin-orbit;  ecbd+ecbe: Coulomb
+cc    esurf: gradient+spin-orbit;  ecbd+ecbe: Coulomb
+      
 
       if (FRANCESCO) then
-          e_di_tot = e_bulk + e_surf + ectot*ma +  espo*float(iso) + 
+          e_di_tot = e_bulk + e_surf + ectot*ma +   
      1    ecbd*float(icoul_d) + ecbe*float(icoul_e) + i_ext*e_ext
 
           write(2,*) 'ETOT(francesco) = ',e_di_tot
           write(2,*) 'ETOT/A(francesco) = ', e_di_tot/ma
 
-          print '(2(A5,I5))', "A", int(aa), "Z", int(zz)
+          print '(2A5)', "A","Z"
+          print '(2I5)', int(aa), int(zz)
           print '(A10,F10.2)', "E(tot)", e_di_tot
           print '(A10,F10.2)', "E(tot)/A", e_di_tot/ma
           print '(A10,F10.2)', "E(kin)", ectot*ma
@@ -2542,8 +2561,8 @@ cc    espo: spin-orbit;  ecbd+ecbe: Coulomb
           print '(A10,F10.2)', "E(surf)", e_surf
           print '(A10,F10.2)', "E(Coul)",
      2      ecbd*float(icoul_d) +ecbe*float(icoul_e)
-          print '(A10,F10.2)', "E(so)", espo*float(iso)
-          
+          print '(A10,F10.2)', "E(so)", e_nablaj*float(iso)      
+c          print '(A10,F10.2)', "Diff", espo - e_nablaj  
           if (i_ext.ne.0) then
              print *, "E(ext) = ", i_ext*e_ext
           end if
@@ -2553,7 +2572,8 @@ cc    espo: spin-orbit;  ecbd+ecbe: Coulomb
 
       if (debug) then
         if (FRANCESCO.eqv..false.) then
-          print '(2(A5,I5))', "A", int(aa), "Z", int(zz)
+          print '(2A5)', "A","Z"
+          print '(2I5)', int(aa), int(zz)
           if (iso.eq.0) then
              print *, "No spin orbit included"
           end if
@@ -2567,7 +2587,7 @@ c     1     +ecbe + e_bulk + e_surf
           print '(A10,F10.2)', "E(coul)",
      2      ecbd*float(icoul_d)+ecbe*float(icoul_e)
           print '(A10,F10.2)', "E(so)", espo*float(iso)  
-    
+cc          print '(A10,F10.2)',"E(so)-E(nablaJ)",espo*float(iso)-e_nablaj
           if (i_ext.ne.0) then      
            print *, "E(ext) = ", i_ext*e_ext
           end if
@@ -2575,8 +2595,9 @@ c     1     +ecbe + e_bulk + e_surf
           print *, "E(delta_rho) =", e_deltarho, "   E(nablaJ) =",
      1    e_nablaj,"      E(J2) =", e_t
 
-!         change this
-          write (1897,'(2(A5,I5))') "A", int(aa), "Z", int(zz)
+
+          write (1897,'(2A5)') "A", "Z" 
+          write (1897,'(2I5)') int(aa), int(zz)
           write (1897,'(4A10)'), "#", "is", "iv", "tot"
           write (1897,'(A10,2F10.2)') "Rho", e_rho0, e_rho1
           write (1897,'(A10,2F10.2)') "Tau", e_tau0, e_tau1
@@ -2589,17 +2610,32 @@ c     1     +ecbe + e_bulk + e_surf
           write (1897,'(A)')
           write (1897,'(A10,3F10.2)') "Bulk",e_bulk0,e_bulk1,e_bulk
           write (1897,'(A10,3F10.2)') "Surf",e_surf0,e_surf1,e_surf
-          write (1897,'(A10,F10.2)') "#Kin", ma*ectot
-          write (1897,'(A10,F10.2)') "#E(Coul)",
+          write (1897,'(A10,F10.2)') "Kin", ma*ectot
+          write (1897,'(A10,F10.2)') "E(Coul)",
      3       ecbd*float(icoul_d) +ecbe*float(icoul_e)         
-          write (1897,'(A10,F10.2)') "#Tot",  
+          write (1897,'(A10,F10.2)') "Tot",  
      2       e_bulk+e_surf+ectot*ma +
      2       ecbd*float(icoul_d) +ecbe*float(icoul_e)
 
         end if
       end if
 
-      
+
+c         Writing contributions to file
+         open(unit=3020,file='temp2.out')
+         write(3020,'(13A10)') "tot","kin","rho0","rho1",
+     4       "tau0","tau1","delta0","delta1","so0","so1","coul",
+     4       "bulk", "surf"
+         write(3020,'(13F10.2)') 
+     5    e_di_tot, ma*ectot,  e_rho0, e_rho1,
+     5    e_tau0,e_tau1,e_deltarho0,e_deltarho1,
+     5    e_nablaj0*float(iso),e_nablaj1*float(iso),
+     5    ecbd*float(icoul_d) +ecbe*float(icoul_e),
+     5    e_bulk,e_surf
+         close(3020)
+
+
+            
 c     Comparing direct integration and sum of eigenvalues +rearrangement
       write(2,*) 'E (direct integration) = ',e_di_tot 
       diffperc=dabs(e_di_tot-etot*ma)/dabs(etot*ma)

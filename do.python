@@ -1,0 +1,22 @@
+#!/bin/csh
+#
+#PBS -N python_code 
+## devel for quick runs
+#PBS -q devel 
+#PBS -l nodes=1:ppn=36
+#PBS -l walltime=0:30:00
+#PBS -A dp064
+#PBS -M francesco.marino@unimi.it
+#PBS -m abe
+#PBS -j oe 
+#PBS -e py.out
+
+module purge
+module load python/intel/3.7
+
+cd /home/dc-mari3/sncf
+
+python script.py > out.out
+
+echo "done"
+date
