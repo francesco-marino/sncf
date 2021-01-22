@@ -190,7 +190,7 @@ c     FLAG   CUSTOM interaction (FRANCESCO)
       real(8), dimension(:), allocatable:: exponents
 
       logical :: FRANCESCO= .false.
-      logical :: debug =  .true.   ! .false.
+      logical :: debug =   .true.      ! .false.
       character(Len = 90) :: dummy_string = ' '
       logical :: verbose = .false.   !.true. 
 
@@ -2197,6 +2197,7 @@ ccc   Initialize several quantities to zero
       e_di_t0=0.d0
       e_di_constr=0.d0
       e_di_t12=0.d0
+      e_di_t12j=0.d0
       e_di_t3=0.d0
 c      e_di_so=0.d0
 c     Custom potential
@@ -2347,8 +2348,14 @@ cc   H(fin)    finite range (gradient, t1-t2) contribution
      1(1.d0/32.d0)*(3.d0*t1*(2.d0*x1+1.d0)+t2*(2.d0*x2+1.d0))*
      1( dp1(j)**2+dn1(j)**2 )
 
-      e_di_t12 = e_di_t12+ctr*rm2(j)
+cc   J^2 terms
+      ctr_j =
+     1 -(1.d0/16.d0)*(t1*x1+t2*x2)*DJT(j)*DJT(j)
+     1 +(1.d0/16.d0)*(t1-t2)*(DJP(j)*DJP(j)+DJN(j)*DJN(j))
 
+
+      e_di_t12 = e_di_t12 +ctr*rm2(j)
+      e_di_t12j= e_di_t12j+ctr_j *rm2(j)
 
 
 cc    Displacement Coulomb energy 
@@ -2410,7 +2417,8 @@ ccc   Multiply by step (h) and 4pi (qp)
       e_di_t0=e_di_t0*h*qp
       e_di_constr=e_di_constr*h*qp
       e_di_t3=e_di_t3*h*qp
-      e_di_t12=e_di_t12*h*qp
+      e_di_t12 =e_di_t12 *h*qp
+      e_di_t12j=e_di_t12j*h*qp
       e_d_coul=e_d_coul*e22/h*qp**2/(ma-2*jz)    
       
       
@@ -2459,7 +2467,7 @@ cc      print *, "E(Delta 1) = ", e_deltarho1
       if(icount_chf.eq.1)then
       write(2,*) 'E(t0) = ',e_di_t0
       write(2,*) 'E(t3) = ',e_di_t3
-      write(2,*) 'E(t1,t2) = ',e_di_t12
+      write(2,*) 'E(t1,t2) = ',e_di_t12+float(isj)*e_di_t12j
       write(2,*)
       end if
 
@@ -2537,7 +2545,8 @@ c     write(2,*) 'NPO,nos=',NPO,nos
 
 ccc   Total energy computed as an integral   (work HERE)
       e_di_tot = ectot*ma +e_di_t0+e_di_t3+e_di_t12 +  ! t0,t12,t3
-     1 espo*float(iso) +      ! spin-orbit
+     1 e_di_t12j * float(isj) +     ! tensor j^2
+     1 espo*float(iso) +           ! spin-orbit
      1 ecbd*float(icoul_d)+ ecbe*float(icoul_e) +      ! coulomb
      1 i_ext*e_ext                 ! external
 
@@ -2711,7 +2720,7 @@ CCC
 
 
       open(unit=2020,file='temp.out')
-      write(2020,'(2I6,2E15.5)') int(aa),int(zz),e_di_tot,rc
+      write(2020,'(2I6,2E15.6)') int(aa),int(zz),ma*etot,rc
       close(2020)
 
       open(unit=13,position='append',file='be.dat')

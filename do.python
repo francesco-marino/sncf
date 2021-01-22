@@ -4,7 +4,7 @@
 ## devel for quick runs
 #PBS -q devel 
 #PBS -l nodes=1:ppn=36
-#PBS -l walltime=0:30:00
+#PBS -l walltime=1:50:00
 #PBS -A dp064
 #PBS -M francesco.marino@unimi.it
 #PBS -m abe
