@@ -1,15 +1,14 @@
 #!/bin/csh
 #
-#PBS -N python_code 
-## devel for quick runs
-#PBS -q devel 
-#PBS -l nodes=1:ppn=36
-#PBS -l walltime=1:50:00
-#PBS -A dp064
-#PBS -M francesco.marino@unimi.it
-#PBS -m abe
-#PBS -j oe 
-#PBS -e py.out
+#SBATCH --job-name=script.py
+#SBATCH -p skl_usr_prod
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=48
+#SBATCH -t 1:30:00
+#SBATCH -A INF21_monstre
+#SBATCH --mail-user=fmarino96@gmail.com
+#SBATCH --mail-type=BEGIN
+#SBATCH --mail-type=END
 
 module purge
 module load python/intel/3.7

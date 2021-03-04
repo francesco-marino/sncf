@@ -1,0 +1,15 @@
+# n. terms  (negative: use sncf.in as input)  AV4P
+3
+# exponent, coeff. SM, coeff. NM  (div. by 3)
+2.	-131.94		-50.90	
+3.	-578.00		-513.96
+6.	901.30		950.27
+# gradient terms (C0,C1)
+0.
+0.
+# nucleus (A, Z)
+48	20
+# energy [MeV] of harmonic trap (0: no trap)
+0.
+# other options (no spin orbit, no coulomb)
+no spin orbit 

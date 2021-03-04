@@ -140,7 +140,7 @@ if __name__=="__main__":
 
     # Grid
     # param_grid = {'c0': np.arange(0,-45,-5), 'c1': np.arange(0,45,5), 'w0': np.arange(30,150,10) }
-    param_grid = {'edf':('av4p_1256',), 'c0': np.arange(0,-160,-5), 'c1': np.arange(0,50,5), 'w0': np.arange(0,150,10) }
+    param_grid = {'edf':('av4p_256',), 'c0': np.arange(0,-160,-5), 'c1': np.arange(0,50,5), 'w0': np.arange(0,150,10) }
     # param_grid = {'edf':['av4p_1256',], 'c0': [0.,], 'c1':[0.,], 'w0':[0.,] }
     param_grid = ParameterGrid(param_grid)
     print ("N. models:\t", len(list(param_grid)) ) 
