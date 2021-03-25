@@ -1,17 +1,17 @@
 #!/bin/csh
 #
-#SBATCH --job-name=script.py
-#SBATCH -p skl_usr_prod
-#SBATCH -N 1
-#SBATCH --ntasks-per-node=48
-#SBATCH -t 1:30:00
-#SBATCH -A INF21_monstre
-#SBATCH --mail-user=fmarino96@gmail.com
-#SBATCH --mail-type=BEGIN
-#SBATCH --mail-type=END
+#PBS -N script_py 
+## devel for quick runs,dirac25x for production
+#PBS -q dirac25x 
+#PBS -l nodes=1:ppn=36
+#PBS -l walltime=3:30:00
+#PBS -A dp064
+#PBS -M francesco.marino@unimi.it
+#PBS -m abe
+#PBS -j oe
 
-module purge
-module load python/intel/3.7
+module purge 
+module load  python/intel/3.7
 
 cd /home/dc-mari3/sncf
 
@@ -19,3 +19,4 @@ python script.py > out.out
 
 echo "done"
 date
+ 

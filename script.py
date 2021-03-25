@@ -110,6 +110,7 @@ def full_run(inputs,exp,grid,n_jobs=-1):
 def load_dataset():
     # Read data
     df = pd.read_csv('tab_exp.dat', index_col=0,delim_whitespace=True,engine='python' )
+    #df = pd.read_csv('tab_exp.dat',delim_whitespace=True,engine='python' )
     mask = [ st.startswith('#')==False for st in df.index.tolist() ]
     df = df[mask]
     df['Energy_per_nucleon'] = df['Energy']/df['A']
@@ -134,14 +135,17 @@ if __name__=="__main__":
     df_o16 = df_full.loc[['16o','40ca','48ca','90zr','132sn','208pb'],:]
     df_sami = df_o16.drop(['16o'])
     df_sami.loc['132sn','R(ch)'] = 0.
-    #print ("Sami\n", df_sami)
+    print ("Sami\n", df_sami)
     dfs = (df_sami,)   #(df_sami,df_o16,df_full)
     names = ("sami",)  # ("sami","o16","full")
 
     # Grid
-    # param_grid = {'c0': np.arange(0,-45,-5), 'c1': np.arange(0,45,5), 'w0': np.arange(30,150,10) }
-    param_grid = {'edf':('av4p_256',), 'c0': np.arange(0,-160,-5), 'c1': np.arange(0,50,5), 'w0': np.arange(0,150,10) }
-    # param_grid = {'edf':['av4p_1256',], 'c0': [0.,], 'c1':[0.,], 'w0':[0.,] }
+    #param_grid = {'c0': np.arange(0,-45,-5), 'c1': np.arange(0,45,5), 'w0': np.arange(30,150,10) }
+    #param_grid = {'edf':['nnlosat_23456',], 'c0': np.arange(0,-45,-5), 'c1': np.arange(0,45,5), 'w0': np.arange(30,150,10) }
+    param_grid = {'edf':['av4p_256',], 'c0': np.arange(0,-160,-5), 'c1': np.arange(0,50,5), 'w0': np.arange(0,150,10) }
+    #param_grid = {'edf':['av4p_1256',], 'c0': [0.,], 'c1':[0.,], 'w0':[0.,] }
+    param_grid = {'edf':['nnlosat_23456',], 'c0': [0.,], 'c1': [0.,], 'w0': [0.,]}
+
     param_grid = ParameterGrid(param_grid)
     print ("N. models:\t", len(list(param_grid)) ) 
     n_jobs= 24
