@@ -81,7 +81,7 @@ C_GL_22_4
       real(8), dimension(NNP) :: bulk_arr       ! potential energy density
       real(8), dimension(NNP) :: surf_dens     ! gradient terms
       real(8), dimension(NNP) :: cen_dens      ! central (t0123) energy density
-
+      real(8) :: dummy_real
 ccc   isovector densities (DOba)
       DIMENSION D_IV(NNP),D_IV1(NNP),D_IV2(NNP), 
      +  DJ_IV(NNP),DJ_IV1(NNP), TAU_IV(NNP)
@@ -311,7 +311,8 @@ cc      Coulomb
          print *, "Harmonic trap of energy E=", omega," MeV"
       end if 
 
-
+cc    Format of command line arguments:
+cc    A Z c0 c1 w0   (all optional)
 
 cc    read from command line
       if (command_argument_count().ge.2) then   ! read A and Z from command line
@@ -335,11 +336,18 @@ ccc       spin-orbit
              c1nablaj = -0.25d0 * w0_0
              if (w0_0.ne.0) then   
                 iso= 1
+             else
+                iso=0
              end if
           end if  
 
         end if
-        
+
+cc      set J^2 terms to zero
+c        print *, "isj ", isj, "itens ", itens
+        isj=0
+        itens=0
+ 
         if (FRANCESCO) then
           print *, "C0 = ", c0deltarho
           print *, "C1 = ", c1deltarho
@@ -358,7 +366,7 @@ CCC
       write(2,*) 'Number of points and mesh: ',nmaxt,step
       w2 = w0_0 
       w1 = 2.d0*w0_0
-      w2p = w2p_0
+      w2p = w0_0
       w1p = 2.d0*w2p_0
       IF(ABS(ALFE).LT.1.E-04) ALFE=1.           
       ni = niter
@@ -2653,8 +2661,30 @@ c     Comparing direct integration and sum of eigenvalues +rearrangement
 
 
       virial_th=2.d0*ectot*ma+3.d0*e_di_t0+
-     15.d0*(e_di_t12+espo)+(3.d0*alfe+3.d0)*e_di_t3+
-     1ecbd+ecbe
+     1 5.d0*(e_di_t12+e_di_t12j+espo)+(3.d0*alfe+3.d0)*e_di_t3+
+     1 ecbd+ecbe
+
+
+      if (FRANCESCO) then
+         virial_th = 2.d0*ectot*ma+ 
+     1   ecbd*float(icoul_d)+ecbe*float(icoul_e) +
+     1   5.0d0*(e_deltarho + e_nablaj*float(iso)+ float(isj)*e_t)
+cc         print *, "HERE all ok ", virial_th
+        do k=1,n_terms
+           do j=1,nnn
+             if (dt(j).ge.1E-12) then
+               dummy_real = dt(j)**(exponents(k)+1) *
+     2         ( coeff_SM(k) + beta(j)**2 * coeff_sym(k) )
+     2         *3.d0*exponents(k)
+             else
+               dummy_real=0.d0
+             endif
+             virial_th= virial_th+ qp*h* rm2(j)* dummy_real
+cc             print *, "and here ", virial_th
+             
+           enddo
+         enddo
+      endif
 
       write(2,*) 'virial theorem = ',virial_th
       am3=0.5d0*6874.4372d0*(2.d0*ectot*ma+

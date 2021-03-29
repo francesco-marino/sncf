@@ -1,4 +1,4 @@
-COMPILER = ifort  # gfortran -w       #  -ffixed-line-length-none
+COMPILER = ifort -g # gfortran -w       #  -ffixed-line-length-none
 
 sncf.x : sncf.o nm.o bsec.o cbcs_new.o  bcsrad2.o test4e.o  libra_new.o from_nag.o timelog.o
 	$(COMPILER) -o sncf.x sncf.o nm.o bsec.o cbcs_new.o   bcsrad2.o test4e.o  libra_new.o from_nag.o timelog.o
